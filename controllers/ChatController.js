@@ -1,12 +1,11 @@
-const Chat = require( '../Model/ModelChat' );
-const User = require( '../Model/UserModel' )
+import Chat from '../Model/ModelChat.js';
+import User from '../Model/UserModel.js';
 
-const chatEnter = async( req, res ) => {
-   
-    const { userId } = req.body;
+const chatEnter = async (req, res) => {
+  const { userId } = req.body;
 
   if (!userId) {
-    console.log("UserId param not sent with request");
+    console.log('UserId param not sent with request');
     return res.sendStatus(400);
   }
 
@@ -17,19 +16,19 @@ const chatEnter = async( req, res ) => {
       { users: { $elemMatch: { $eq: userId } } },
     ],
   })
-    .populate("users", "-password")
-    .populate("latestMessage");
+    .populate('users', '-password')
+    .populate('latestMessage');
 
   isChat = await User.populate(isChat, {
-    path: "latestMessage.sender",
-    select: "nom picture email",
+    path: 'latestMessage.sender',
+    select: 'nom picture email',
   });
 
   if (isChat.length > 0) {
     res.send(isChat[0]);
   } else {
-    let chatData = {
-      chatName: "sender",
+    const chatData = {
+      chatName: 'sender',
       isGroupChat: false,
       users: [req.params._id, userId],
     };
@@ -37,8 +36,8 @@ const chatEnter = async( req, res ) => {
     try {
       const createdChat = await Chat.create(chatData);
       const FullChat = await Chat.findOne({ _id: createdChat._id }).populate(
-        "users",
-        "-password"
+        'users',
+        '-password',
       );
       res.status(200).json(FullChat);
     } catch (error) {
@@ -46,40 +45,38 @@ const chatEnter = async( req, res ) => {
       throw new Error(error.message);
     }
   }
+};
 
-}
+const chatOut = (req, res) => {
+  try {
+    Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
+      .populate('users', '-password')
+      .populate('groupAdmin', '-password')
+      .populate('latestMessage')
+      .sort({ updatedAt: -1 })
+      .then(async (results) => {
+        results = await User.populate(results, {
+          path: 'latestMessage.sender',
+          select: 'name picture email',
+        });
+        res.status(200).send(results);
+      });
+  } catch (error) {
+    throw new Error(error);
+  }
+};
 
-
-const chatOut = ( req, res ) => {
-    try {
-         Chat.find({ users: { $elemMatch: { $eq: req.user._id } } })
-            .populate("users", "-password")
-            .populate("groupAdmin", "-password")
-            .populate("latestMessage")
-            .sort({ updatedAt: -1 })
-            .then(async (results) => {
-              results = await User.populate(results, {
-                path: "latestMessage.sender",
-                select: "name pic email",
-             });
-                res.status(200).send(results)
-            })   
-            } catch (error) {
-                throw new Error(error)
-            }
-}
-
-  const createGroup = async(req, res) => {
-     if (!req.body.users || !req.body.name) {
-    return res.status(400).send({ message: "Please Fill all the feilds" });
+const createGroup = async (req, res) => {
+  if (!req.body.users || !req.body.name) {
+    return res.status(400).send({ message: 'Please Fill all the feilds' });
   }
 
-  let users = JSON.parse(req.body.users);
+  const users = JSON.parse(req.body.users);
 
   if (users.length < 2) {
     return res
       .status(400)
-      .send("More than 2 users are required to form a group chat");
+      .send('More than 2 users are required to form a group chat');
   }
 
   users.push(req.user);
@@ -87,47 +84,47 @@ const chatOut = ( req, res ) => {
   try {
     const groupChat = await Chat.create({
       chatName: req.body.name,
-      users: users,
+      users,
       isGroupChat: true,
       groupAdmin: req.user,
     });
 
     const fullGroupChat = await Chat.findOne({ _id: groupChat._id })
-      .populate("users", "-password")
-      .populate("groupAdmin", "-password");
+      .populate('users', '-password')
+      .populate('groupAdmin', '-password');
 
     res.status(200).json(fullGroupChat);
   } catch (error) {
     res.status(400);
     throw new Error(error.message);
   }
- }
+};
 
-const remaneGroup = async ( req, res ) => {
-     const { chatId, chatName } = req.body;
+const remaneGroup = async (req, res) => {
+  const { chatId, chatName } = req.body;
 
   const updatedChat = await Chat.findByIdAndUpdate(
     chatId,
     {
-      chatName: chatName,
+      chatName,
     },
     {
       new: true,
-    }
+    },
   )
-    .populate("users", "-password")
-    .populate("groupAdmin", "-password");
+    .populate('users', '-password')
+    .populate('groupAdmin', '-password');
 
   if (!updatedChat) {
     res.status(404);
-    throw new Error("Chat Not Found");
+    throw new Error('Chat Not Found');
   } else {
     res.json(updatedChat);
   }
- }
+};
 
-const deleteGroup = async ( req, res ) => {
-     const { chatId, userId } = req.body;
+const deleteGroup = async (req, res) => {
+  const { chatId, userId } = req.body;
 
   // check if the requester is admin
 
@@ -138,21 +135,21 @@ const deleteGroup = async ( req, res ) => {
     },
     {
       new: true,
-    }
+    },
   )
-    .populate("users", "-password")
-    .populate("groupAdmin", "-password");
+    .populate('users', '-password')
+    .populate('groupAdmin', '-password');
 
   if (!removed) {
     res.status(404);
-    throw new Error("Chat Not Found");
+    throw new Error('Chat Not Found');
   } else {
     res.json(removed);
   }
- }
+};
 
-const addPersonGroup = async ( req, res ) => {
-     const { chatId, userId } = req.body;
+const addPersonGroup = async (req, res) => {
+  const { chatId, userId } = req.body;
 
   // check if the requester is admin
 
@@ -163,17 +160,19 @@ const addPersonGroup = async ( req, res ) => {
     },
     {
       new: true,
-    }
+    },
   )
-    .populate("users", "-password")
-    .populate("groupAdmin", "-password");
+    .populate('users', '-password')
+    .populate('groupAdmin', '-password');
 
   if (!added) {
     res.status(404);
-    throw new Error("Chat Not Found");
+    throw new Error('Chat Not Found');
   } else {
     res.json(added);
   }
-}
+};
 
-module.exports = {chatEnter, chatOut, createGroup, remaneGroup, deleteGroup, addPersonGroup}
+export {
+  chatEnter, chatOut, createGroup, remaneGroup, deleteGroup, addPersonGroup,
+};
