@@ -83,4 +83,6 @@ io.on('connection', (socket) => {
   });
 });
 
-app.listen(Port, () => console.log(`server is running to port http://localhost:${Port}`));
+const serverTest = app.listen(Port, () => console.log(`server is running to port http://localhost:${Port}`));
+
+export default serverTest;
